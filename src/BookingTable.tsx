@@ -1,5 +1,4 @@
 import React, { ChangeEvent, ReactNode, useEffect, useState } from "react";
-import { useWeb3React } from "@web3-react/core";
 import { Web3Provider } from "@ethersproject/providers";
 import { Contract } from "@ethersproject/contracts";
 import { AddressZero } from "@ethersproject/constants";
@@ -55,11 +54,12 @@ enum ActionTypes {
 type TimeslotAddresses = string[];
 
 type BookingTableProps = {
+  account: string;
   contract: Contract;
+  library: Web3Provider;
 };
 
-const BookingTable = ({ contract }: BookingTableProps) => {
-  const { account, library } = useWeb3React<Web3Provider>();
+const BookingTable = ({ account, contract, library }: BookingTableProps) => {
   // Contains last block number at app initialization
   const [blockNumber, setBlockNumber] = useState(0);
   const [businessHourStart, setBusinessHourStart] = useState<number>(0);
@@ -166,7 +166,7 @@ const BookingTable = ({ contract }: BookingTableProps) => {
   // Handle click on Book button
   const handleBooking = async (room: Rooms, timeslot: number) => {
     try {
-      await contract?.book(room, timeslot);
+      await contract.book(room, timeslot);
       addTimeslotPending(room, timeslot);
       openSnackbar(
         `Booking room ${Rooms[room]} at ${formatTimeslot(timeslot)}`,
@@ -183,10 +183,10 @@ const BookingTable = ({ contract }: BookingTableProps) => {
   // Handle cancel on Book button
   const handleCancelling = async (room: Rooms, timeslot: number) => {
     try {
-      await contract?.cancel(room, timeslot);
+      await contract.cancel(room, timeslot);
       addTimeslotPending(room, timeslot);
       openSnackbar(
-        `Cancelling for room ${Rooms[room]} at ${formatTimeslot(timeslot)}`,
+        `Cancelling reservation for room ${Rooms[room]} at ${formatTimeslot(timeslot)}`,
         "warning"
       );
     } catch (err) {
@@ -204,7 +204,7 @@ const BookingTable = ({ contract }: BookingTableProps) => {
         <Select
           value={currentRoom}
           onChange={handleRoomChange}
-          inputProps={{ id: "room-selector" }}
+          inputProps={{ id: "room-selector", "data-testid": "room-selector" }}
         >
           {Object.keys(Rooms)
             .filter((roomKey) => !isNaN(Number(roomKey)))
@@ -256,12 +256,14 @@ const BookingTable = ({ contract }: BookingTableProps) => {
                     >
                       {isPending && (
                         <CircularProgress
+                          data-testid={`loader-${index}`}
                           size={20}
                           style={{ marginRight: "1rem" }}
                         />
                       )}
                       {address === account ? (
                         <Button
+                          data-testid={`cancel-button-${index}`}
                           variant="contained"
                           color="secondary"
                           onClick={() =>
@@ -276,6 +278,7 @@ const BookingTable = ({ contract }: BookingTableProps) => {
                         </Button>
                       ) : (
                         <Button
+                          data-testid={`book-button-${index}`}
                           variant="contained"
                           color="primary"
                           onClick={() =>
